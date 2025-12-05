@@ -19,10 +19,19 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
+        if (\App\Models\BannedEmail::where('email', $request->email)->exists()) {
+            return back()->withErrors([
+                'email' => 'Tu cuenta ha sido inhabilitada permanentemente por el administrador.',
+            ])->onlyInput('email');
+        }
+
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            
-            // Redirigir al dashboard del motorizado en lugar de /admin
+
+            $user = Auth::user();
+            if ($user && (($user->role ?? null) === 'admin' || (property_exists($user, 'is_admin') && (bool) $user->is_admin))) {
+                return redirect('/admin/dashboard');
+            }
             return redirect('/motorizado/dashboard');
         }
 

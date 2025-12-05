@@ -22,7 +22,18 @@ class DriverController extends Controller
         $request->validate([
             'fullName' => 'required|string|max:255',
             'dob' => 'required|date',
-            'email' => 'required|string|email|max:255|unique:users,email',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                'unique:users,email',
+                function ($attribute, $value, $fail) {
+                    if (\App\Models\BannedEmail::where('email', $value)->exists()) {
+                        $fail('Este correo electrónico ha sido inhabilitado por el administrador.');
+                    }
+                },
+            ],
             'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8',
             'vehicleType' => 'required|in:moto,bicicleta,auto',
@@ -79,7 +90,7 @@ class DriverController extends Controller
             foreach ($documentTypes as $inputName => $type) {
                 if ($request->hasFile($inputName)) {
                     $path = $request->file($inputName)->store('documents/' . $driver->id, 'public');
-                    
+
                     Document::create([
                         'driver_id' => $driver->id,
                         'type' => $type,
